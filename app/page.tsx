@@ -66,7 +66,7 @@ const HomePage: React.FC = () => {
   };
 
   const calculateTax = (e: FormEvent<HTMLFormElement>) => {
-    setCalculated(true);
+   
     e.preventDefault();
     setError("");
     setNewTax(null);
@@ -80,6 +80,7 @@ const HomePage: React.FC = () => {
       setError("Please enter a valid income amount.");
       return;
     }
+    setCalculated(true);
 
     // Apply standard deduction
     const taxableIncome = totalIncome - STANDARD_DEDUCTION;
