@@ -278,13 +278,13 @@ const HomePage: React.FC = () => {
             <span style={{ fontWeight: "bold", color: "#d32f2f" }}>
               ₹{formatCurrency(finalOldTax - finalNewTax)}
             </span>{" "}
-            compared to the Existing Tax Regime.
+            compared to the Existing New Tax Regime.
           </>
         );
       } else if (finalOldTax < finalNewTax) {
         return (
           <>
-            Existing Tax Regime (FY 2024-2025) will save you{" "}
+            Existing New Tax Regime (FY 2024-2025) will save you{" "}
             <span style={{ fontWeight: "bold", color: "#d32f2f" }}>
               ₹{formatCurrency(finalNewTax - finalOldTax)}
             </span>{" "}
@@ -473,7 +473,7 @@ const HomePage: React.FC = () => {
               }}
             >
               <Typography variant="h6" gutterBottom color="primary">
-                Existing Tax Regime (FY 2024-2025)
+                Existing New Tax Regime (FY 2024-2025)
               </Typography>
               {oldTax !== null && netIncome !== null && (
                 <>
