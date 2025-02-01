@@ -86,7 +86,6 @@ const HomePage: React.FC = () => {
       const newItems: BreakdownItem[] = [];
       let remaining = taxableIncome;
 
-      // Process slabs from highest to lowest.
       if (remaining > 2400000) {
         const slab = remaining - 2400000;
         const slabTax = slab * 0.30;
@@ -159,7 +158,6 @@ const HomePage: React.FC = () => {
         newTotalTax += slabTax;
         remaining = 400000;
       }
-      // The first ₹4,00,000 is tax free.
       newItems.push({
         description: "₹0 to ₹4,00,000",
         taxable: 400000,
@@ -168,7 +166,6 @@ const HomePage: React.FC = () => {
       });
 
       setNewTax(newTotalTax);
-      // Reverse items to show slabs from lowest upward.
       setNewBreakdown(newItems.reverse());
     }
 
@@ -176,7 +173,6 @@ const HomePage: React.FC = () => {
     // Traditional Calculation
     // -------------------------------
     if (taxableIncome < 700000) {
-      // No tax if taxable income is below ₹7,00,000.
       setOldTax(0);
       setOldBreakdown([
         {
@@ -187,7 +183,6 @@ const HomePage: React.FC = () => {
         },
       ]);
     } else if (taxableIncome <= 1000000) {
-      // For taxable income between ₹7,00,000 and ₹10,00,000:
       const excess = taxableIncome - 700000;
       const taxExcess = excess * 0.10;
       const total = 20000 + taxExcess;
@@ -203,7 +198,6 @@ const HomePage: React.FC = () => {
         { description: "Fixed Component", taxable: 0, rate: 0, tax: 20000 },
       ]);
     } else if (taxableIncome <= 1200000) {
-      // For taxable income between ₹10,00,000 and ₹12,00,000:
       const excess = taxableIncome - 1000000;
       const taxExcess = excess * 0.15;
       const total = 50000 + taxExcess;
@@ -214,7 +208,7 @@ const HomePage: React.FC = () => {
           description: "₹7,00,001 to ₹10,00,000 (Fixed)",
           taxable: 300000,
           rate: 10,
-          tax: 20000 + 0.10 * 300000, // 20000 + 30000 = 50000
+          tax: 20000 + 0.10 * 300000,
         },
         {
           description: "Excess over ₹10,00,000 at 15%",
@@ -224,7 +218,6 @@ const HomePage: React.FC = () => {
         },
       ]);
     } else if (taxableIncome <= 1500000) {
-      // For taxable income between ₹12,00,001 and ₹15,00,000:
       const excess = taxableIncome - 1200000;
       const taxExcess = excess * 0.20;
       const total = 80000 + taxExcess;
@@ -251,7 +244,6 @@ const HomePage: React.FC = () => {
         },
       ]);
     } else {
-      // For taxable income above ₹15,00,000:
       const excess = taxableIncome - 1500000;
       const taxExcess = excess * 0.30;
       const total = 140000 + taxExcess;
@@ -286,12 +278,28 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Helper functions to calculate cess and final tax liability
+  // Helper function to calculate final tax liability including 4% cess
   const calculateFinalTax = (tax: number | null) =>
     tax !== null ? tax * (1 + CESS_RATE) : 0;
 
   const formatCurrency = (value: number) =>
     value.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+
+  // Compute final tax liabilities for both methods
+  const finalNewTax = newTax !== null ? calculateFinalTax(newTax) : 0;
+  const finalOldTax = oldTax !== null ? calculateFinalTax(oldTax) : 0;
+
+  // Compute savings message
+  let savingsMessage = "";
+  if (newTax !== null && oldTax !== null) {
+    if (finalNewTax < finalOldTax) {
+      savingsMessage = `New Calculation saves you ₹${formatCurrency(finalOldTax - finalNewTax)} compared to Traditional Calculation.`;
+    } else if (finalOldTax < finalNewTax) {
+      savingsMessage = `Traditional Calculation saves you ₹${formatCurrency(finalNewTax - finalOldTax)} compared to New Calculation.`;
+    } else {
+      savingsMessage = "Both methods yield the same final tax liability.";
+    }
+  }
 
   return (
     <Container
@@ -359,7 +367,25 @@ const HomePage: React.FC = () => {
             </Typography>
           </Box>
         )}
-        <Grid container spacing={3} sx={{ mt: 4 }}>
+        {/* Savings Summary is now placed right after the taxable income details */}
+        {netIncome !== null && newTax !== null && oldTax !== null && (
+          <Box
+            sx={{
+              my: 2,
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: "#e8f5e9",
+              border: "1px solid #c8e6c9",
+              textAlign: "center",
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#2e7d32" }}>
+              Savings Summary
+            </Typography>
+            <Typography variant="subtitle1">{savingsMessage}</Typography>
+          </Box>
+        )}
+        <Grid container spacing={3} sx={{ mt: 2 }}>
           {/* New Calculation */}
           <Grid item xs={12} md={6}>
             <Paper
@@ -377,14 +403,14 @@ const HomePage: React.FC = () => {
               </Typography>
               {newTax !== null && (
                 <>
+                  <Typography variant="h5" sx={{ fontWeight: "bold", color: "#2e7d32" }}>
+                    Final Tax Liability: ₹{formatCurrency(finalNewTax)}
+                  </Typography>
                   <Typography variant="subtitle1">
                     Tax before Cess: ₹{formatCurrency(newTax)}
                   </Typography>
                   <Typography variant="subtitle1">
                     Health &amp; Education Cess (4%): ₹{formatCurrency(newTax * CESS_RATE)}
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                    Final Tax Liability: ₹{formatCurrency(calculateFinalTax(newTax))}
                   </Typography>
                   <TableContainer component={Paper} sx={{ mt: 2 }}>
                     <Table size="small">
@@ -434,14 +460,14 @@ const HomePage: React.FC = () => {
               </Typography>
               {oldTax !== null && (
                 <>
+                  <Typography variant="h5" sx={{ fontWeight: "bold", color: "#2e7d32" }}>
+                    Final Tax Liability: ₹{formatCurrency(finalOldTax)}
+                  </Typography>
                   <Typography variant="subtitle1">
                     Tax before Cess: ₹{formatCurrency(oldTax)}
                   </Typography>
                   <Typography variant="subtitle1">
                     Health &amp; Education Cess (4%): ₹{formatCurrency(oldTax * CESS_RATE)}
-                  </Typography>
-                  <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                    Final Tax Liability: ₹{formatCurrency(calculateFinalTax(oldTax))}
                   </Typography>
                   <TableContainer component={Paper} sx={{ mt: 2 }}>
                     <Table size="small">
