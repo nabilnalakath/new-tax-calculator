@@ -426,10 +426,13 @@ const HomePage: React.FC = () => {
                   <Typography variant="subtitle1">
                     Tax before Surcharge &amp; Cess: ₹{formatCurrency(newTax)}
                   </Typography>
+                  {newSurcharge > 0 && (
+                    
                   <Typography variant="subtitle1">
                     Surcharge (@ {netIncome <= 10000000 ? "10%" : netIncome <= 20000000 ? "15%" : "25%"}):{" "}
                     ₹{formatCurrency(newSurcharge)}
-                  </Typography>
+                  </Typography> )
+}
                   <Typography variant="subtitle1">
                     Health &amp; Education Cess (4%): ₹
                     {formatCurrency((newTax + newSurcharge) * CESS_RATE)}
@@ -488,10 +491,12 @@ const HomePage: React.FC = () => {
                   <Typography variant="subtitle1">
                     Tax before Surcharge &amp; Cess: ₹{formatCurrency(oldTax)}
                   </Typography>
+                  {oldSurcharge > 0 && (
                   <Typography variant="subtitle1">
                     Surcharge (@ {netIncome <= 10000000 ? "10%" : netIncome <= 20000000 ? "15%" : "25%"}):{" "}
                     ₹{formatCurrency(oldSurcharge)}
                   </Typography>
+                  )}
                   <Typography variant="subtitle1">
                     Health &amp; Education Cess (4%): ₹
                     {formatCurrency((oldTax + oldSurcharge) * CESS_RATE)}
