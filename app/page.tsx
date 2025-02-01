@@ -28,8 +28,23 @@ interface BreakdownItem {
 const STANDARD_DEDUCTION = 75000;
 const CESS_RATE = 0.04;
 
+// Helper: Calculate surcharge based on net taxable income and base tax
+const calculateSurcharge = (netIncome: number, tax: number): number => {
+  if (netIncome < 5000000) return 0;
+  else if (netIncome <= 10000000) return tax * 0.10;
+  else if (netIncome <= 20000000) return tax * 0.15;
+  else if (netIncome <= 50000000) return tax * 0.25;
+  else return tax * 0.25;
+};
+
+// Helper: Calculate final tax liability including surcharge and cess
+const calculateFinalTax = (netIncome: number, tax: number): number => {
+  const surcharge = calculateSurcharge(netIncome, tax);
+  return (tax + surcharge) * (1 + CESS_RATE);
+};
+
 const HomePage: React.FC = () => {
-  // State for input and error message
+  // States for input and error message
   const [income, setIncome] = useState<string>("");
   const [error, setError] = useState<string>("");
 
@@ -71,7 +86,6 @@ const HomePage: React.FC = () => {
     // New Calculation (Progressive)
     // -----------------------------
     if (taxableIncome < 1200000) {
-      // New calculation applies only for taxable income above ₹12,00,000.
       setNewTax(0);
       setNewBreakdown([
         {
@@ -170,7 +184,7 @@ const HomePage: React.FC = () => {
     }
 
     // -------------------------------
-    // Traditional Calculation
+    // Traditional Calculation (Slab-wise)
     // -------------------------------
     if (taxableIncome < 700000) {
       setOldTax(0);
@@ -182,124 +196,107 @@ const HomePage: React.FC = () => {
           tax: 0,
         },
       ]);
-    } else if (taxableIncome <= 1000000) {
-      const excess = taxableIncome - 700000;
-      const taxExcess = excess * 0.10;
-      const total = 20000 + taxExcess;
-      setOldTax(total);
-      setOldBreakdown([
-        { description: "Up to ₹7,00,000", taxable: 700000, rate: 0, tax: 0 },
-        {
-          description: "Excess over ₹7,00,000 at 10%",
-          taxable: excess,
-          rate: 10,
-          tax: taxExcess,
-        },
-        { description: "Fixed Component", taxable: 0, rate: 0, tax: 20000 },
-      ]);
-    } else if (taxableIncome <= 1200000) {
-      const excess = taxableIncome - 1000000;
-      const taxExcess = excess * 0.15;
-      const total = 50000 + taxExcess;
-      setOldTax(total);
-      setOldBreakdown([
-        { description: "Up to ₹7,00,000", taxable: 700000, rate: 0, tax: 0 },
-        {
-          description: "₹7,00,001 to ₹10,00,000 (Fixed)",
-          taxable: 300000,
-          rate: 10,
-          tax: 20000 + 0.10 * 300000,
-        },
-        {
-          description: "Excess over ₹10,00,000 at 15%",
-          taxable: excess,
-          rate: 15,
-          tax: taxExcess,
-        },
-      ]);
-    } else if (taxableIncome <= 1500000) {
-      const excess = taxableIncome - 1200000;
-      const taxExcess = excess * 0.20;
-      const total = 80000 + taxExcess;
-      setOldTax(total);
-      setOldBreakdown([
-        { description: "Up to ₹7,00,000", taxable: 700000, rate: 0, tax: 0 },
-        {
-          description: "₹7,00,001 to ₹10,00,000 (Fixed)",
-          taxable: 300000,
-          rate: 10,
-          tax: 20000 + 0.10 * 300000,
-        },
-        {
-          description: "₹10,00,001 to ₹12,00,000 (Fixed)",
-          taxable: 200000,
-          rate: 15,
-          tax: 0.15 * 200000,
-        },
-        {
-          description: "Excess over ₹12,00,000 at 20%",
-          taxable: excess,
-          rate: 20,
-          tax: taxExcess,
-        },
-      ]);
     } else {
-      const excess = taxableIncome - 1500000;
-      const taxExcess = excess * 0.30;
-      const total = 140000 + taxExcess;
-      setOldTax(total);
-      setOldBreakdown([
-        { description: "Up to ₹7,00,000", taxable: 700000, rate: 0, tax: 0 },
-        {
-          description: "₹7,00,001 to ₹10,00,000 (Fixed)",
-          taxable: 300000,
-          rate: 10,
-          tax: 20000 + 0.10 * 300000,
-        },
-        {
-          description: "₹10,00,001 to ₹12,00,000 (Fixed)",
-          taxable: 200000,
-          rate: 15,
-          tax: 0.15 * 200000,
-        },
-        {
-          description: "₹12,00,001 to ₹15,00,000 (Fixed)",
-          taxable: 300000,
-          rate: 20,
-          tax: 0.20 * 300000,
-        },
-        {
-          description: "Excess over ₹15,00,000 at 30%",
-          taxable: excess,
-          rate: 30,
-          tax: taxExcess,
-        },
-      ]);
+      const breakdownItems: BreakdownItem[] = [];
+      // Slab 1: Up to ₹3,00,000: No tax
+      breakdownItems.push({
+        description: "Up to ₹3,00,000: No tax",
+        taxable: Math.min(taxableIncome, 300000),
+        rate: 0,
+        tax: 0,
+      });
+      // Slab 2: ₹3,00,001 to ₹7,00,000: 5%
+      const slab2 = Math.max(Math.min(taxableIncome, 700000) - 300000, 0);
+      breakdownItems.push({
+        description: "₹3,00,001 to ₹7,00,000: 5%",
+        taxable: slab2,
+        rate: 5,
+        tax: slab2 * 0.05,
+      });
+      // Slab 3: ₹7,00,001 to ₹10,00,000: 10%
+      const slab3 = Math.max(Math.min(taxableIncome, 1000000) - 700000, 0);
+      breakdownItems.push({
+        description: "₹7,00,001 to ₹10,00,000: 10%",
+        taxable: slab3,
+        rate: 10,
+        tax: slab3 * 0.10,
+      });
+      // Slab 4: ₹10,00,001 to ₹12,00,000: 15%
+      const slab4 = Math.max(Math.min(taxableIncome, 1200000) - 1000000, 0);
+      breakdownItems.push({
+        description: "₹10,00,001 to ₹12,00,000: 15%",
+        taxable: slab4,
+        rate: 15,
+        tax: slab4 * 0.15,
+      });
+      // Slab 5: ₹12,00,001 to ₹15,00,000: 20%
+      const slab5 = Math.max(Math.min(taxableIncome, 1500000) - 1200000, 0);
+      breakdownItems.push({
+        description: "₹12,00,001 to ₹15,00,000: 20%",
+        taxable: slab5,
+        rate: 20,
+        tax: slab5 * 0.20,
+      });
+      // Slab 6: Above ₹15,00,000: 30%
+      const slab6 = Math.max(taxableIncome - 1500000, 0);
+      breakdownItems.push({
+        description: "Above ₹15,00,000: 30%",
+        taxable: slab6,
+        rate: 30,
+        tax: slab6 * 0.30,
+      });
+
+      const totalTax = breakdownItems.reduce((sum, item) => sum + item.tax, 0);
+      setOldTax(totalTax);
+      setOldBreakdown(breakdownItems);
     }
   };
 
-  // Helper function to calculate final tax liability including 4% cess
-  const calculateFinalTax = (tax: number | null) =>
-    tax !== null ? tax * (1 + CESS_RATE) : 0;
-
+  // Helper to format currency
   const formatCurrency = (value: number) =>
     value.toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
-  // Compute final tax liabilities for both methods
-  const finalNewTax = newTax !== null ? calculateFinalTax(newTax) : 0;
-  const finalOldTax = oldTax !== null ? calculateFinalTax(oldTax) : 0;
+  // Compute final tax liabilities including surcharge and cess for both methods
+  const finalNewTax =
+    newTax !== null && netIncome !== null ? calculateFinalTax(netIncome, newTax) : 0;
+  const finalOldTax =
+    oldTax !== null && netIncome !== null ? calculateFinalTax(netIncome, oldTax) : 0;
 
-  // Compute savings message
-  let savingsMessage = "";
-  if (newTax !== null && oldTax !== null) {
-    if (finalNewTax < finalOldTax) {
-      savingsMessage = `New Calculation saves you ₹${formatCurrency(finalOldTax - finalNewTax)} compared to Traditional Calculation.`;
-    } else if (finalOldTax < finalNewTax) {
-      savingsMessage = `Traditional Calculation saves you ₹${formatCurrency(finalNewTax - finalOldTax)} compared to New Calculation.`;
-    } else {
-      savingsMessage = "Both methods yield the same final tax liability.";
+  // Compute individual surcharge amounts
+  const newSurcharge =
+    netIncome !== null && newTax !== null ? calculateSurcharge(netIncome, newTax) : 0;
+  const oldSurcharge =
+    netIncome !== null && oldTax !== null ? calculateSurcharge(netIncome, oldTax) : 0;
+
+  // Build savings message as a JSX element with the savings amount highlighted
+  const savingsJSX = (() => {
+    if (newTax !== null && oldTax !== null) {
+      if (finalNewTax < finalOldTax) {
+        return (
+          <>
+            Latest New Tax Regime (FY 2025-2026) will save you{" "}
+            <span style={{ fontWeight: "bold", color: "#d32f2f" }}>
+              ₹{formatCurrency(finalOldTax - finalNewTax)}
+            </span>{" "}
+            compared to the Existing Tax Regime.
+          </>
+        );
+      } else if (finalOldTax < finalNewTax) {
+        return (
+          <>
+            Existing Tax Regime (FY 2024-2025) will save you{" "}
+            <span style={{ fontWeight: "bold", color: "#d32f2f" }}>
+              ₹{formatCurrency(finalNewTax - finalOldTax)}
+            </span>{" "}
+            compared to the Latest New Tax Regime.
+          </>
+        );
+      } else {
+        return <>Both methods yield the same final tax liability.</>;
+      }
     }
-  }
+    return null;
+  })();
 
   return (
     <Container
@@ -323,11 +320,25 @@ const HomePage: React.FC = () => {
         }}
       >
         <Typography variant="h4" align="center" gutterBottom color="primary">
-          Income Tax Calculator Comparison
+          Tax Calculator as Per Feb 1, 2025 Budget
         </Typography>
-        <Typography variant="subtitle1" align="center" gutterBottom color="textSecondary">
-          (After Standard Deduction of ₹{STANDARD_DEDUCTION.toLocaleString("en-IN")})
-        </Typography>
+        {/* Disclaimer Card - now centered */}
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+          <Paper
+            elevation={1}
+            sx={{
+              p: 1,
+              display: "inline-block",
+              backgroundColor: "#ffebee",
+              border: "1px solid #ffcdd2",
+              animation: "glow 2s infinite",
+            }}
+          >
+            <Typography variant="body2" align="center" color="textSecondary">
+              This calculator is for quick reference only. Please refer to the official income tax website for final figures.
+            </Typography>
+          </Paper>
+        </Box>
         <Box
           component="form"
           onSubmit={calculateTax}
@@ -367,7 +378,7 @@ const HomePage: React.FC = () => {
             </Typography>
           </Box>
         )}
-        {/* Savings Summary is now placed right after the taxable income details */}
+        {/* Savings Summary */}
         {netIncome !== null && newTax !== null && oldTax !== null && (
           <Box
             sx={{
@@ -382,35 +393,41 @@ const HomePage: React.FC = () => {
             <Typography variant="h6" sx={{ fontWeight: "bold", color: "#2e7d32" }}>
               Savings Summary
             </Typography>
-            <Typography variant="subtitle1">{savingsMessage}</Typography>
+            <Typography variant="subtitle1">{savingsJSX}</Typography>
           </Box>
         )}
         <Grid container spacing={3} sx={{ mt: 2 }}>
-          {/* New Calculation */}
+          {/* Latest New Tax Regime Card with Pulse Animation */}
           <Grid item xs={12} md={6}>
             <Paper
-              elevation={2}
+              elevation={4}
               sx={{
                 p: 2,
                 borderRadius: 2,
                 backgroundColor: "#fafafa",
+                border: "2px solid #2e7d32",
                 transition: "box-shadow 0.3s",
-                "&:hover": { boxShadow: 6 },
+                animation: "pulse 2s infinite",
               }}
             >
               <Typography variant="h6" gutterBottom color="primary">
-                New Calculation (Progressive)
+                Latest New Tax Regime (FY 2025-2026)
               </Typography>
-              {newTax !== null && (
+              {newTax !== null && netIncome !== null && (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: "bold", color: "#2e7d32" }}>
                     Final Tax Liability: ₹{formatCurrency(finalNewTax)}
                   </Typography>
                   <Typography variant="subtitle1">
-                    Tax before Cess: ₹{formatCurrency(newTax)}
+                    Tax before Surcharge &amp; Cess: ₹{formatCurrency(newTax)}
                   </Typography>
                   <Typography variant="subtitle1">
-                    Health &amp; Education Cess (4%): ₹{formatCurrency(newTax * CESS_RATE)}
+                    Surcharge (@ {netIncome <= 10000000 ? "10%" : netIncome <= 20000000 ? "15%" : "25%"}):{" "}
+                    ₹{formatCurrency(newSurcharge)}
+                  </Typography>
+                  <Typography variant="subtitle1">
+                    Health &amp; Education Cess (4%): ₹
+                    {formatCurrency((newTax + newSurcharge) * CESS_RATE)}
                   </Typography>
                   <TableContainer component={Paper} sx={{ mt: 2 }}>
                     <Table size="small">
@@ -443,7 +460,7 @@ const HomePage: React.FC = () => {
               )}
             </Paper>
           </Grid>
-          {/* Traditional Calculation */}
+          {/* Traditional Calculation Card */}
           <Grid item xs={12} md={6}>
             <Paper
               elevation={2}
@@ -456,18 +473,23 @@ const HomePage: React.FC = () => {
               }}
             >
               <Typography variant="h6" gutterBottom color="primary">
-                Traditional Calculation
+                Existing Tax Regime (FY 2024-2025)
               </Typography>
-              {oldTax !== null && (
+              {oldTax !== null && netIncome !== null && (
                 <>
                   <Typography variant="h5" sx={{ fontWeight: "bold", color: "#2e7d32" }}>
                     Final Tax Liability: ₹{formatCurrency(finalOldTax)}
                   </Typography>
                   <Typography variant="subtitle1">
-                    Tax before Cess: ₹{formatCurrency(oldTax)}
+                    Tax before Surcharge &amp; Cess: ₹{formatCurrency(oldTax)}
                   </Typography>
                   <Typography variant="subtitle1">
-                    Health &amp; Education Cess (4%): ₹{formatCurrency(oldTax * CESS_RATE)}
+                    Surcharge (@ {netIncome <= 10000000 ? "10%" : netIncome <= 20000000 ? "15%" : "25%"}):{" "}
+                    ₹{formatCurrency(oldSurcharge)}
+                  </Typography>
+                  <Typography variant="subtitle1">
+                    Health &amp; Education Cess (4%): ₹
+                    {formatCurrency((oldTax + oldSurcharge) * CESS_RATE)}
                   </Typography>
                   <TableContainer component={Paper} sx={{ mt: 2 }}>
                     <Table size="small">
@@ -502,6 +524,31 @@ const HomePage: React.FC = () => {
           </Grid>
         </Grid>
       </Paper>
+      {/* Global Keyframes for Animations */}
+      <style jsx global>{`
+        @keyframes pulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.4);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(46, 125, 50, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(46, 125, 50, 0);
+          }
+        }
+        @keyframes glow {
+          0% {
+            box-shadow: 0 0 5px #ff8a80;
+          }
+          50% {
+            box-shadow: 0 0 20px #ff8a80;
+          }
+          100% {
+            box-shadow: 0 0 5px #ff8a80;
+          }
+        }
+      `}</style>
     </Container>
   );
 };
