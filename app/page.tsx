@@ -59,11 +59,14 @@ const HomePage: React.FC = () => {
   const [oldTax, setOldTax] = useState<number | null>(null);
   const [oldBreakdown, setOldBreakdown] = useState<BreakdownItem[]>([]);
 
+  const [calculated, setCalculated] = useState<boolean>(false);
+
   const handleIncomeChange = (e: ChangeEvent<HTMLInputElement>) => {
     setIncome(e.target.value);
   };
 
   const calculateTax = (e: FormEvent<HTMLFormElement>) => {
+    setCalculated(true);
     e.preventDefault();
     setError("");
     setNewTax(null);
@@ -396,6 +399,7 @@ const HomePage: React.FC = () => {
             <Typography variant="subtitle1">{savingsJSX}</Typography>
           </Box>
         )}
+        {calculated && (
         <Grid container spacing={3} sx={{ mt: 2 }}>
           {/* Latest New Tax Regime Card with Pulse Animation */}
           <Grid item xs={12} md={6}>
@@ -523,6 +527,7 @@ const HomePage: React.FC = () => {
             </Paper>
           </Grid>
         </Grid>
+        )}
       </Paper>
       {/* Global Keyframes for Animations */}
       <style jsx global>{`
